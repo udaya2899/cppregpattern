@@ -75,7 +75,7 @@ enum class MissingKeyPolicy {
  *  \tparam Allocator  The allocator to use for the function map
  */
 template <
-    class Key, class Func, MissingKeyPolicy MKP = MissingKeyPolicy::exception,
+    class Key, class Func, MissingKeyPolicy MKP = MissingKeyPolicy::default_construct,
     class Hash = std::hash<Key>, class KeyEqual = std::equal_to<Key>,
     class Allocator = std::allocator<std::pair<const Key, std::function<Func>>>>
 class Registry {
@@ -141,6 +141,53 @@ class Registry {
     }
   };
 #endif
+
+  /** Get returns the registered function from the registry with a given key.
+   * Does not execute the function.
+   *  \param key   The identifier passed to Register()
+   *
+   * \return     The registered function, or an appropriate value based on MKP:
+   *             - MKP::exception: Throws std::out_of_range if the key is not found.
+   *             - MKP::default_construct: Returns a default-constructed std::function<Func>.
+   *             - MKP::optional (C++17+): Returns std::nullopt if the key is not found.
+ 
+   */
+  static auto Get(const Key &key) {
+    if constexpr (MKP == MissingKeyPolicy::exception) {
+      return funcs().at(key);
+    } else if constexpr (MKP == MissingKeyPolicy::default_construct) {
+      auto it = funcs().find(key);
+      if (it != funcs().end()) {
+        return it->second;
+      } else {
+        return func_t{};
+      }
+    } else if constexpr (MKP == MissingKeyPolicy::optional) {
+#if __cplusplus >= 201703L
+      auto it = funcs().find(key);
+      if (it != funcs().end()) {
+        return std::optional<func_t>{it->second};
+      } else {
+        return std::nullopt;
+      }
+#else
+      static_assert(false,"MissingKeyPolicy::optional requires C++17 or later.");
+#endif
+    }
+  }
+
+  /** Retrieves all registered keys.
+   *
+   * \return A vector containing all keys in the registry.
+   */
+  static std::vector<Key> GetAll() {
+    std::vector<Key> keys;
+    keys.reserve(funcs().size());  // Reserve space to avoid reallocations
+    for (const auto& pair : funcs()) {
+        keys.push_back(pair.first);
+    }
+    return keys;
+    }
 
   /** Calls one of the registered functions
    *
