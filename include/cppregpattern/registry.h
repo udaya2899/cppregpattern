@@ -176,18 +176,18 @@ class Registry {
     }
   }
 
-  /** Retrieves all registered keys.
+  /** Retrieves all registered keys and their corresponding functions.
    *
-   * \return A vector containing all keys in the registry.
+   * \return A vector of pairs, each containing a key and its associated function.
    */
-  static std::vector<Key> GetAll() {
-    std::vector<Key> keys;
-    keys.reserve(funcs().size());  // Reserve space to avoid reallocations
+  static std::vector<std::pair<Key, func_t>> GetAll() {
+    std::vector<std::pair<Key, func_t>> keyFuncPairs;
+    keyFuncPairs.reserve(funcs().size());  // Reserve space to avoid reallocations
     for (const auto& pair : funcs()) {
-        keys.push_back(pair.first);
+        keyFuncPairs.push_back(pair);
     }
-    return keys;
-    }
+    return keyFuncPairs;
+  }
 
   /** Calls one of the registered functions
    *
